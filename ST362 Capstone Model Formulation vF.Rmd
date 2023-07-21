@@ -1,0 +1,203 @@
+---
+title: "ST362 Final Project"
+author: "Mia Brelih, Jeremy Graham, Toan Nguyen"
+date: "Last compiled on `r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+```{r}
+if(!require("readxl")) {install.packages("readxl", dependencies = TRUE)}
+if(!require("ggplot2")) {install.packages("ggplot2", dependencies = TRUE)}
+if(!require("MASS")) {install.packages("MASS", dependencies = TRUE)}
+if(!require("zoo")) {install.packages("zoo", dependencies = TRUE)}
+if(!require("lmtest")) {install.packages("lmtest", dependencies = TRUE)}
+if(!require("forecast")) {install.packages("forecast", dependencies = TRUE)}
+if(!require("patchwork")) {install.packages("patchwork", dependencies = TRUE)}
+```
+
+
+```{r}
+library(readxl)
+library(ggplot2)
+library(MASS)
+library(zoo)
+library(lmtest)
+library(forecast)
+library(patchwork)
+DLE <- read_excel("C:/Users/nguy9850/Downloads/DLEvF.xlsx")
+colnames(DLE)
+```
+
+```{r}
+y <- DLE$Life_Expectancy
+x <- DLE$Adult_mortality
+x1 <- DLE$Hepatits_B
+x2 <- DLE$BMI
+x3 <- DLE$Polio
+x4 <- DLE$Diphtheria
+x5 <- DLE$HIV_incidents
+x6 <- DLE$GDP_per_capita
+x7 <- DLE$Population_mln
+x8 <- DLE$Schooling
+x9 <- DLE$Status
+x10 <- DLE$Year
+```
+
+#Testing categorical variables against continuous variables to determine which predictors may be significant.
+
+```{r}
+#Plotting Status
+
+plot <- ggplot(DLE) + aes(x=factor(x9), y = x) +geom_point() +  
+  labs(x = "Status", y = "Adult_mortality", title = "Status vs Adult Mortality")
+plot1 <- ggplot(DLE) + aes(x=factor(x9), y = x1) +geom_point() +  
+  labs(x = "Status", y = "Hepatitis B", title = "Status vs Hepatitis B")
+plot2 <- ggplot(DLE) + aes(x=factor(x9), y = x2) +geom_point() +  
+  labs(x = "Status", y = "BMI", title = "Status vs BMI")
+plot3 <- ggplot(DLE) + aes(x=factor(x9), y = x3) +geom_point() +  
+  labs(x = "Status", y = "Polio", title = "Status vs Polio")
+plot4 <- ggplot(DLE) + aes(x=factor(x9), y = x4) +geom_point() +  
+  labs(x = "Status", y = "Diphtheria", title = "Status vs Diphtheria")
+plot5 <- ggplot(DLE) + aes(x=factor(x9), y = x5) +geom_point() +  
+  labs(x = "Status", y = "HIV Incidents", title = "Status vs HIV Incidents")
+plot6 <- ggplot(DLE) + aes(x=factor(x9), y = x6) +geom_point() +  
+  labs(x = "Status", y = "GDP per capita", title = "Status vs GDP per capita")
+plot7 <- ggplot(DLE) + aes(x=factor(x9), y = x7) +geom_point() +  
+  labs(x = "Status", y = "Population (m)", title = "Status vs Population (m)")
+plot8 <- ggplot(DLE) + aes(x=factor(x9), y = x8) +geom_point() +  
+  labs(x = "Status", y = "Schooling", title = "Status vs Schooling")
+
+combined_plot <- plot + plot1 + plot2 + plot3 + plot4 + plot5 + plot6 + plot7 + plot8
+print(combined_plot)
+```
+
+
+```{r}
+#Plotting Year
+p <- ggplot(DLE) + aes(x=factor(x10), y = x) +geom_point() +  
+  labs(x = "Year", y = "Adult Mortality", title = "Year vs Adult Mortality")
+p1 <- ggplot(DLE) + aes(x=factor(x10), y = x1) +geom_point() +  
+  labs(x = "Year", y = "Hepatitis B", title = "Year vs Hepatitis B")
+p2 <- ggplot(DLE) + aes(x=factor(x10), y = x2) +geom_point() +  
+  labs(x = "Year", y = "BMI", title = "Year vs BMI")
+p3 <- ggplot(DLE) + aes(x=factor(x10), y = x3) +geom_point() +  
+  labs(x = "Year", y = "Polio", title = "Year vs Polio")
+p4 <- ggplot(DLE) + aes(x=factor(x10), y = x4) +geom_point() +  
+  labs(x = "Year", y = "Diphtheria", title = "Year vs Diphtheria")
+p5 <-  ggplot(DLE) + aes(x=factor(x10), y = x5) +geom_point() +  
+  labs(x = "Year", y = "HIV Incidents", title = "Year vs HIV Incidents")
+p6 <- ggplot(DLE) + aes(x=factor(x10), y = x6) +geom_point() +  
+  labs(x = "Year", y = "GDP per capita", title = "Year vs GDP per capita")
+p7 <- ggplot(DLE) + aes(x=factor(x10), y = x7) +geom_point() +  
+  labs(x = "Year", y = "Population (m)", title = "Year vs Population (m)")
+p8 <- ggplot(DLE) + aes(x=factor(x10), y = x8) +geom_point() +  
+  labs(x = "Year", y = "Schooling", title = "Year vs Schooling")
+
+combined_p <- p + p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8
+print(combined_p)
+```
+
+#Below, we take a look at the correlation between numeric predictors to determine which may be multicollinear, and thus would not be implemented in the model. We also use the pairs function to help visualize the correlation.
+
+```{r}
+pairs(DLE[,2:12])
+correlation <-cor(DLE[,c(-1,-2,-13)])
+correlation
+```
+#Here we test to see the relationship between the response variables and the predictors who are not correlated with each other.
+
+```{r}
+#Relationship with the Response
+gp <- ggplot(DLE) + aes(y = y, x = x , colour = factor(x9)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = TRUE, formula = y ~ x) + 
+  labs(x = "Adult Mortality", y = "Life Expectancy", title = "Life Expectancy vs Adult Mortality based on Status")
+
+gp1 <- ggplot(DLE) + aes(y = y, x = x3 , colour = factor(x9)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = TRUE, formula = y ~ x) +
+  labs(x = "Polio", y = "Life Expectancy", title = "Life Expectancy vs Polio based on Status")
+
+gp2 <- ggplot(DLE) + aes(y = y, x = x5 , colour = factor(x9)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = TRUE, formula = y ~ x) + 
+  labs(x = "HIV Incidents", y = "Life Expectancy", title = "Life Expectancy vs HIV Incidents based on Status")
+
+gp3 <- ggplot(DLE) + aes(y = y, x = x6 , colour = factor(x9)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = TRUE, formula = y ~ x) + 
+  labs(x = "GDP per capita", y = "Life Expectancy", title = "Life Expectancy vs GDP per capita based on Status")
+
+gp4 <- ggplot(DLE) + aes(y = y, x = x8 , colour = factor(x9)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = TRUE, formula = y ~ x) + 
+  labs(x = "Schooling", y = "Life Expectancy", title = "Life Expectancy vs Schooling based on Status")
+
+combined_gp <- gp + gp1 + gp2 + gp3 + gp4 
+print(combined_gp)
+
+```
+
+#From above, we can create a model, leveraging the information we have discovered regarding both the continuous and categorical predictors. 
+
+```{r}
+model <- lm(y ~ x * factor(x9) + x8, data = DLE)
+plot(model)
+summary(model)
+```
+
+#To test the categorical predictors, we use the ANOVA table for the model above. We have also tested the standard deviation of the model.
+```{r}
+anova_result <- anova(model)
+anova_result
+
+summary(model)$sigma
+```
+
+#To test whether the response or predictor variables need to be log transformed.
+```{r}
+model <- lm(y ~ x * factor(x9) + x8, data = DLE)
+
+boxcox_model <- boxcox(model) 
+optimal_lambda <-  boxcox_model$x[which.max(boxcox_model$y)]
+optimal_lambda
+```
+#Below we test for any outliers, and from there if they are significant. Here we can see that there exists 0 influential observations.
+```{r}
+hat_values <- hatvalues(model)
+threshold_lev <- (2*length(coef(model))/length(hat_values))
+high_leverage<-hat_values[hat_values> threshold_lev]
+high_leverage
+
+stand_residuals <- rstandard(model)
+outlier_observations <- stand_residuals[abs(stand_residuals) > 3]
+outlier_observations
+
+cooks_distance <- cooks.distance(model)
+influential_observations <- cooks_distance[cooks_distance > 1]
+influential_observations
+
+```
+
+
+#Here we use Durbin Watson to determine if there exists the presence of autocorrelation in the residuals of the linear regression model.
+```{r}
+result <- dwtest(model)
+result
+```
+
+
+#Since we have an order of two within our linear model, it is worth testing for the presence of autocorrelation through a different method. 
+```{r}
+residuals <- residuals(model)
+
+pacf_values <- Pacf(residuals)
+pacf_values
+
+conf_interval <- 1.96/sqrt(length(residuals))  # 95% confidence interval
+significant_lags <- abs(as.vector(pacf_values$acf)) > conf_interval
+significant_lags
+
+acf_values <- Acf(residuals)
+acf_values
+```
